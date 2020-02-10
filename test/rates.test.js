@@ -1,14 +1,7 @@
-const { api } = require("../dist");
+const { track } = require("../dist");
 
-test("should work", () => {
-  api.rates
-    .getRates()
-    .then(r => {
-      console.log(r.data.data.offers);
-      return;
-    })
-    .catch(e => {
-      console.error(e);
-      throw "";
-    });
+test("should fetch rates", async () => {
+  let c = await track.getRates("bank-transfer");
+  console.log("rate is", c);
+  return;
 });

@@ -1,3 +1,4 @@
-import * as rates from "./rates";
+import * as rates from "./offers";
+import * as currency from "./currency";
 
-export { rates };
+export { rates, currency };

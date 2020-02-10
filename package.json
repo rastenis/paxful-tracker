@@ -1,0 +1,9 @@
+{
+  "name": "paxful-tracker",
+  "version": "0.0.1",
+  "description": "A tool for tracking Paxful",
+  "main": "dist/index.js",
+  "repository": "git@github.com:Scharkee/paxful-tracker.git",
+  "author": "Scharkee <matas2k@gmail.com>",
+  "license": "MIT"
+}

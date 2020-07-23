@@ -1,14 +1,19 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "ES2020",
+    "lib": ["ES2020"],
     "module": "commonjs",
+    "outDir": "dist",
+    "strict": false,
+    "esModuleInterop": true,
     "noImplicitAny": false,
+    "resolveJsonModule": true,
+    "types": ["node"],
     "removeComments": true,
     "noLib": false,
     "preserveConstEnums": true,
     "declaration": true,
     "suppressImplicitAnyIndexErrors": true,
-    "outDir": "./dist",
     "downlevelIteration": true
   },
   "exclude": ["node_modules", "dist"]

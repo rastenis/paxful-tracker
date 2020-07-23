@@ -10,9 +10,16 @@ A tool for receiving notifications based on custom flags from Paxful.
 ## Setup
 
 ```bash
+# Pull the repo
 $ git clone https://github.com/Scharkee/paxful-tracker.git
-$ yarn
-$ yarn track
+
+# Install packages & build
+$ pnpm i
+
+# configure config.json
+
+# Run the tracker
+$ pnpm run track
 ```
 
 A config.json file has to be in the root directory of the tracker. **Warning**, the margin values are internal and only represent the degree to which the buyer is overvaluing his currency when purchasing the tracked currency via the matching PAYMENT_METHOD.

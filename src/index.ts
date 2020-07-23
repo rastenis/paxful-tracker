@@ -1,4 +1,2 @@
-import * as api from "./api";
-import * as track from "./track";
-
-export { api, track };
+export * as api from "./api";
+export * as track from "./track";

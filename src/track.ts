@@ -1,7 +1,6 @@
 import * as api from "./api";
 import { config } from "./config";
 import { notifier, format } from "./notifications";
-import async from "async";
 
 export function setup() {
   setInterval(() => {
@@ -9,80 +8,68 @@ export function setup() {
   }, config.interval);
 }
 
-export function check() {
+export async function check() {
   console.log("Checking...");
 
-  config.tracked.forEach(toTrack => {
-    getMargins(toTrack)
-      .then(r => {
-        Object.keys(r).forEach(element => {
-          console.log(
-            `Checked ${toTrack.paymentMethod} [${element}] and it is at ${r[element]}`
-          );
+  for (const toTrack of config.tracked) {
+    const result = await getMargins(toTrack);
 
-          if (element == "all") {
-            if (r[element] > toTrack.marginThreshold) {
-              console.log(`Notifying for ${toTrack.paymentMethod}`);
+    for (const element of Object.keys(result)) {
+      console.log(
+        `Checked ${toTrack.paymentMethod} [${element}] and it is at ${result[element]}`
+      );
 
-              notifier.send({
-                message: `${toTrack.paymentMethod} is at ${r[element]}, which is above ${toTrack.marginThreshold}`,
-                title: `${toTrack.paymentMethod} is at ${r[element]}`,
-                sound: "pushover",
-                device: format(config.pushover.devices),
-                priority: 1
-              });
-            }
-          } else if (r[element] > toTrack.marginThresholds[element]) {
-            console.log(`Notifying for ${toTrack.paymentMethod} [${element}]`);
-            notifier.send({
-              message: `${toTrack.paymentMethod} [${element}] is at ${r[element]}, which is above ${toTrack.marginThresholds[element]}`,
-              title: `${toTrack.paymentMethod} [${element}] is at ${r[element]}`,
-              sound: "pushover",
-              device: format(config.pushover.devices),
-              priority: 1
-            });
-          }
+      if (element == "all") {
+        if (result[element] > toTrack.marginThreshold) {
+          console.log(`Notifying for ${toTrack.paymentMethod}`);
+
+          notifier.send({
+            message: `${toTrack.paymentMethod} is at ${result[element]}, which is above ${toTrack.marginThreshold}`,
+            title: `${toTrack.paymentMethod} is at ${result[element]}`,
+            sound: "pushover",
+            device: format(config.pushover.devices),
+            priority: 1,
+          });
+        }
+      } else if (result[element] > toTrack.marginThresholds[element]) {
+        console.log(`Notifying for ${toTrack.paymentMethod} [${element}]`);
+        notifier.send({
+          message: `${toTrack.paymentMethod} [${element}] is at ${result[element]}, which is above ${toTrack.marginThresholds[element]}`,
+          title: `${toTrack.paymentMethod} [${element}] is at ${result[element]}`,
+          sound: "pushover",
+          device: format(config.pushover.devices),
+          priority: 1,
         });
-      })
-      .catch(e => {
-        console.error("Could not track ", toTrack, e);
-      });
-  });
+      }
+    }
+  }
 }
 
 export async function getMargins(toTrack: any): Promise<any> {
   let margins: any;
-  return new Promise((res, rej) => {
-    margins = {};
-    // single
-    if (toTrack.marginThreshold) {
-      api.rates
-        .all(toTrack.paymentMethod, "buy", toTrack.currency)
-        .then(({ data }) => {
-          return res({ all: data.offers[0].margin });
-        })
-        .catch(e => {
-          return rej(e);
-        });
-    } else {
-      // multi
-      async.eachSeries(
-        Object.keys(toTrack.marginThresholds),
-        (min, cb) => {
-          api.rates
-            .all(toTrack.paymentMethod, "buy", toTrack.currency, min)
-            .then(({ data }) => {
-              margins[min] = data.offers[0].margin;
-              return cb();
-            })
-            .catch(e => {
-              return cb(e);
-            });
-        },
-        () => {
-          return res(margins);
-        }
+  margins = {};
+  // single
+  if (toTrack.marginThreshold) {
+    const { data } = await api.rates.all(
+      toTrack.paymentMethod,
+      "buy",
+      toTrack.currency
+    );
+
+    return { all: data.offers[0].margin };
+  } else {
+    // multi
+    for (const min of toTrack.marginThresholds) {
+      const { data } = await api.rates.all(
+        toTrack.paymentMethod,
+        "buy",
+        toTrack.currency,
+        min
       );
+
+      margins[min] = data.offers[0].margin;
     }
-  });
+
+    return margins;
+  }
 }

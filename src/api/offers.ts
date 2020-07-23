@@ -14,6 +14,7 @@ export async function all(
   }&nonce=${Date.now()}&offer_type=${offer_type}&payment_method=${payment_method}&currency_code=${currency_code}${
     min ? "&fiat_min=" + min : ""
   }`;
+
   hmac.update(body);
 
   return request("offer/all", `${body}&apiseal=${hmac.digest("hex")}`);

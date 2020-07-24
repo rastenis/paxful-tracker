@@ -1,4 +1,4 @@
-import * as Push from "pushover-notifications";
+import Push from "pushover-notifications";
 import { config } from "./config";
 
 export interface IPushoverObject {
@@ -11,25 +11,22 @@ export interface IPushoverObject {
 }
 
 export const notifier = {
-  send: async function(PushoverObject: IPushoverObject): Promise<void> {
+  send: async function (PushoverObject: IPushoverObject): Promise<void> {
     push.send(PushoverObject);
     return;
   },
-  error: function(error) {
+  error: function (error) {
     console.error("Failed to send notification:", error);
-  }
+  },
 };
 
 // definitions
 const push = new Push({
   user: config.pushover.user,
   token: config.pushover.token,
-  onerror: notifier.error
+  onerror: notifier.error,
 });
 
 export function format(r: string[]): string {
-  return r
-    .toString()
-    .replace("[", "")
-    .replace("]", "");
+  return r.toString().replace("[", "").replace("]", "");
 }

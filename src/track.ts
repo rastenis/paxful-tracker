@@ -1,6 +1,7 @@
 import * as api from "./api";
 import { config } from "./config";
 import { notifier, format } from "./notifications";
+import { updateOffer } from "./update-offers";
 
 export function setup() {
   setInterval(() => {
@@ -11,17 +12,22 @@ export function setup() {
 export async function check() {
   console.log("Checking...");
 
-  if (!config?.tracked) {
+  if (!config.tracked) {
     console.log("Nothing set up to track.");
     return;
   }
 
   for (const toTrack of config.tracked) {
-    const result = await getMargins(toTrack);
+    var allOfferValues = [];
+    const result = await getMargins(toTrack, allOfferValues);
 
     const firstEntryName = Object.keys(result)[0];
 
+    // single
     if (firstEntryName === "all") {
+      console.log(
+        `Checked ${toTrack.paymentMethod} [${firstEntryName}] and it is at ${result[firstEntryName]}`
+      );
       if (result[firstEntryName] > toTrack.marginThreshold) {
         console.log(`Notifying for ${toTrack.paymentMethod}`);
 
@@ -33,9 +39,24 @@ export async function check() {
           priority: 1,
         });
       }
+
+      // try to update current offers and notify if changes were made
+      var updatedOfferValue = await updateOffer(allOfferValues, toTrack);
+      if(updatedOfferValue != -1) {
+        console.log(`Notifying updated offer for ${toTrack.paymentMethod}, now at ${updatedOfferValue}`);
+
+        notifier.send({
+          message: `${toTrack.paymentMethod} offer was updated, now at ${updatedOfferValue}`,
+          title: `${toTrack.paymentMethod} updated to ${updatedOfferValue}`,
+          sound: "pushover",
+          device: format(config.pushover.devices),
+          priority: 1,
+        });
+      }
       return;
     }
-
+    
+    // multi
     for (const element of Object.keys(result)) {
       console.log(
         `Checked ${toTrack.paymentMethod} [${element}] and it is at ${result[element]}`
@@ -51,11 +72,25 @@ export async function check() {
           priority: 1,
         });
       }
+
+      // try to update current offers and notify if changes were made
+      var updatedOfferValue = await updateOffer(allOfferValues[element], toTrack, element);
+      if(updatedOfferValue != -1) {
+        console.log(`Notifying updated offer for ${toTrack.paymentMethod} [${element}], now at ${updatedOfferValue}`);
+
+        notifier.send({
+          message: `${toTrack.paymentMethod} [${element}] offer was updated, now at ${updatedOfferValue}`,
+          title: `${toTrack.paymentMethod} [${element}] updated to ${updatedOfferValue}`,
+          sound: "pushover",
+          device: format(config.pushover.devices),
+          priority: 1,
+        });
+      }
     }
   }
 }
 
-export async function getMargins(toTrack: any): Promise<any> {
+export async function getMargins(toTrack: any, allOfferValues: any): Promise<any> {
   let margins: any;
   margins = {};
 
@@ -72,6 +107,20 @@ export async function getMargins(toTrack: any): Promise<any> {
       toTrack.currency
     );
 
+    if (!data) {
+      console.error(
+        "Failed to get data for ",
+        toTrack.paymentMethod,
+        "buy",
+        toTrack.currency
+      );
+      return;
+    }
+
+    data.offers.forEach(element => {
+      allOfferValues.push(element.margin);
+    });
+
     return { all: data.offers[0].margin };
   }
 
@@ -84,7 +133,7 @@ export async function getMargins(toTrack: any): Promise<any> {
       parseFloat(min) // Denomination
     );
 
-    if (!data) {
+    if (!data || !data.offers[0]) {
       console.error(
         "Failed to get data for ",
         toTrack.paymentMethod,
@@ -94,6 +143,11 @@ export async function getMargins(toTrack: any): Promise<any> {
       );
       continue;
     }
+
+    allOfferValues[min] = [];
+    data.offers.forEach(element => {
+      allOfferValues[min].push(element.margin);
+    });
 
     margins[min] = data.offers[0].margin;
   }

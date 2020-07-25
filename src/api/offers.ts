@@ -16,6 +16,30 @@ export async function all(
   }`;
 
   hmac.update(body);
-
+  
   return request("offer/all", `${body}&apiseal=${hmac.digest("hex")}`);
+}
+
+export async function self(offer_type: string = "buy") {
+  const hmac = crypto.createHmac("sha256", config.secret);
+  const body = `apikey=${
+    config.key
+  }&nonce=${Date.now()}&active=false&offer_type=${offer_type}`;
+
+  hmac.update(body);
+
+  const result = await request("offer/list", `${body}&apiseal=${hmac.digest("hex")}`);
+  return result;
+}
+
+export async function update(offer_hash: string, margin: number) {
+  const hmac = crypto.createHmac("sha256", config.secret);
+  const body = `apikey=${
+    config.key
+  }&nonce=${Date.now()}&offer_hash=${offer_hash}&margin=${margin}`;
+
+  hmac.update(body);
+
+  const result = await request("offer/update-price", `${body}&apiseal=${hmac.digest("hex")}`);
+  return result;
 }

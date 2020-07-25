@@ -8,5 +8,10 @@ export async function request(path: string, data?: string): Promise<any> {
     headers: { "Content-Type": "text/plain", Accept: "application/json" },
   });
 
+  if(result.data.status === 'error') {
+    console.error(result.data.error.message);
+    process.exit(1);
+  }
+
   return result.data;
 }

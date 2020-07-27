@@ -18,7 +18,7 @@ export async function check() {
   }
 
   for (const toTrack of config.tracked) {
-    var allOfferValues = [];
+    const allOfferValues = [];
     const result = await getMargins(toTrack, allOfferValues);
 
     const firstEntryName = Object.keys(result)[0];
@@ -36,26 +36,28 @@ export async function check() {
           title: `${toTrack.paymentMethod} is at ${result[firstEntryName]}`,
           sound: "pushover",
           device: format(config.pushover.devices),
-          priority: 1,
+          priority: 1
         });
       }
 
       // try to update current offers and notify if changes were made
-      var updatedOfferValue = await updateOffer(allOfferValues, toTrack);
-      if(updatedOfferValue != -1) {
-        console.log(`Notifying updated offer for ${toTrack.paymentMethod}, now at ${updatedOfferValue}`);
+      const updatedOfferValue = await updateOffer(allOfferValues, toTrack);
+      if (updatedOfferValue != -1) {
+        console.log(
+          `Notifying updated offer for ${toTrack.paymentMethod}, now at ${updatedOfferValue}`
+        );
 
         notifier.send({
           message: `${toTrack.paymentMethod} offer was updated, now at ${updatedOfferValue}`,
           title: `${toTrack.paymentMethod} updated to ${updatedOfferValue}`,
           sound: "pushover",
           device: format(config.pushover.devices),
-          priority: 1,
+          priority: 1
         });
       }
       return;
     }
-    
+
     // multi
     for (const element of Object.keys(result)) {
       console.log(
@@ -69,28 +71,37 @@ export async function check() {
           title: `${toTrack.paymentMethod} [${element}] is at ${result[element]}`,
           sound: "pushover",
           device: format(config.pushover.devices),
-          priority: 1,
+          priority: 1
         });
       }
 
       // try to update current offers and notify if changes were made
-      var updatedOfferValue = await updateOffer(allOfferValues[element], toTrack, element);
-      if(updatedOfferValue != -1) {
-        console.log(`Notifying updated offer for ${toTrack.paymentMethod} [${element}], now at ${updatedOfferValue}`);
+      const updatedOfferValue = await updateOffer(
+        allOfferValues[element],
+        toTrack,
+        element
+      );
+      if (updatedOfferValue != -1) {
+        console.log(
+          `Notifying updated offer for ${toTrack.paymentMethod} [${element}], now at ${updatedOfferValue}`
+        );
 
         notifier.send({
           message: `${toTrack.paymentMethod} [${element}] offer was updated, now at ${updatedOfferValue}`,
           title: `${toTrack.paymentMethod} [${element}] updated to ${updatedOfferValue}`,
           sound: "pushover",
           device: format(config.pushover.devices),
-          priority: 1,
+          priority: 1
         });
       }
     }
   }
 }
 
-export async function getMargins(toTrack: any, allOfferValues: any): Promise<any> {
+export async function getMargins(
+  toTrack: any,
+  allOfferValues: any
+): Promise<any> {
   let margins: any;
   margins = {};
 
@@ -101,7 +112,7 @@ export async function getMargins(toTrack: any, allOfferValues: any): Promise<any
 
   // single
   if (toTrack.marginThreshold) {
-    const { data } = await api.rates.all(
+    const { data } = await api.offers.all(
       toTrack.paymentMethod,
       "buy",
       toTrack.currency
@@ -117,7 +128,7 @@ export async function getMargins(toTrack: any, allOfferValues: any): Promise<any
       return;
     }
 
-    data.offers.forEach(element => {
+    data.offers.forEach((element) => {
       allOfferValues.push(element.margin);
     });
 
@@ -126,7 +137,7 @@ export async function getMargins(toTrack: any, allOfferValues: any): Promise<any
 
   // multi
   for (const min in toTrack.marginThresholds) {
-    const { data } = await api.rates.all(
+    const { data } = await api.offers.all(
       toTrack.paymentMethod,
       "buy",
       toTrack.currency,
@@ -145,7 +156,7 @@ export async function getMargins(toTrack: any, allOfferValues: any): Promise<any
     }
 
     allOfferValues[min] = [];
-    data.offers.forEach(element => {
+    data.offers.forEach((element) => {
       allOfferValues[min].push(element.margin);
     });
 

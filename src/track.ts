@@ -1,7 +1,7 @@
 import * as api from "./api";
 import { config } from "./config";
 import { notifier, format } from "./notifications";
-import { updateOffer } from "./update-offers";
+import { updateOffer } from "./updateOffers";
 
 export function setup() {
   setInterval(() => {
@@ -102,11 +102,10 @@ export async function getMargins(
   toTrack: any,
   allOfferValues: any
 ): Promise<any> {
-  let margins: any;
-  margins = {};
+  const margins: any = {};
 
   if (!toTrack.marginThreshold && !toTrack.marginThresholds) {
-    console.log("Tracking entry set up improperly.");
+    console.error("Tracking entry set up improperly.");
     process.exit(1);
   }
 

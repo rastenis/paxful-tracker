@@ -64,7 +64,7 @@ export async function updateOffer(
 
     // apply new margin to matched offer
     const update_result = await api.offers.update(element.offer_id, newMargin);
-    let success: boolean = update_result.data.success;
+    const success: boolean = update_result.data.success;
 
     /////////////////////
     // SPĖJIMAS: offer_id === offer_hash. Look at docs, arba patikrink ar veikia tiesiog.

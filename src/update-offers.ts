@@ -1,6 +1,10 @@
 import * as api from "./api";
 import { config } from "./config";
 
+///////////////////////////
+// TODO: exclude self offers from price list
+//////////////////////////
+
 // process offer margin list received from Paxful
 export async function updateOffer(offerValues: any, offerDescription: any, denomination:string="all"): Promise<number> {
   

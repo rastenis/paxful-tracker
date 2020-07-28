@@ -15,6 +15,11 @@ export async function updateOffer(
   )
     return;
 
+  if(username == null) {
+    const currentUser = await api.user.username();
+    username = currentUser.data.username;
+  }
+
   let marginMin: number, marginMax: number;
   marginMin =
     offers[0].denomination == "all"
@@ -42,7 +47,7 @@ export async function updateOffer(
       const fiatMax = parseFloat(element.fiat_amount_range_max);
 
       //////////////////////////
-      // SPĖJIMAS: fiat_min turi būti intervale [fiat_amount_range_min; fiat_amount_rangemax] - nežinau, look up docs?
+      // GUESS: fiat_min is in interval [fiat_amount_range_min; fiat_amount_range_max] 
       //////////////////////////
       if (denomNumber > fiatMax || denomNumber < fiatMin) {
         return;
@@ -52,15 +57,11 @@ export async function updateOffer(
     // find largest margin which would be first in the list and in the given range
     let newMargin: number;
 
-    if(username == null) {
-      const { currentUser } = await api.user.userID();
-      username = currentUser.data.username;
-    }
-
     for(let i = 0; i < sortedOffers.length; i++) {
 
       // exclude self posted offers from comparison
-      if(sortedOffers[i].offer_owner_username == username) continue;
+      if(sortedOffers[i].offer_owner_username == username)
+        continue;
 
       if(sortedOffers[i].margin >= marginMin ) {
         newMargin = Math.max(marginMin, offers[i].margin - 0.01);
@@ -71,10 +72,6 @@ export async function updateOffer(
     // apply new margin to matched offer
     const updateResult = await api.offers.update(element.offer_id, newMargin);
     const success: boolean = updateResult.data.success;
-
-    /////////////////////
-    // SPĖJIMAS: offer_id === offer_hash. Look at docs, arba patikrink ar veikia tiesiog.
-    /////////////////////
 
     if (!success) {
       console.error("Offer update unsuccessful: API error");

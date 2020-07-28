@@ -17,7 +17,7 @@ export async function all(
   return request("offer/all", `${body}&apiseal=${seal}`);
 }
 
-export async function self(offer_type: string = "buy") {
+export async function self(offer_type: string = "sell") {
   const [body, seal] = createBodySignature(
     `active=true&offer_type=${offer_type}`
   );
@@ -41,7 +41,13 @@ export async function update(offer_hash: string, margin: number) {
  */
 export function createBodySignature(bodyAppend: string): [any, any] {
   const hmac = crypto.createHmac("sha256", config.secret);
-  const body = `apikey=${config.key}&nonce=${Date.now()}&${bodyAppend}`;
+  
+  let body: string;
+  if(bodyAppend != "") {
+    body = `apikey=${config.key}&nonce=${Date.now()}&${bodyAppend}`;
+  } else {
+    body = `apikey=${config.key}&nonce=${Date.now()}`;
+  } 
 
   hmac.update(body);
 

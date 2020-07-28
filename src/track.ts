@@ -3,6 +3,14 @@ import { config } from "./config";
 import { notifier, format } from "./notifications";
 import { updateOffer } from "./updateOffers";
 
+export interface IOffer {
+  offer_id: string,
+  margin: number,
+  payment_method_slug: string,
+  denomination: string,
+  offer_owner_username: string
+}
+
 export function setup() {
   setInterval(() => {
     check();
@@ -18,22 +26,21 @@ export async function check() {
   }
 
   for (const toTrack of config.tracked) {
-    const allOfferValues = [];
-    const result = await getMargins(toTrack, allOfferValues);
 
-    const firstEntryName = Object.keys(result)[0];
+    // getMargins returns IOffer array instead of number array for easier offer id filtering
+    const allOffers = await getOffers(toTrack);
 
     // single
-    if (firstEntryName === "all") {
+    if(toTrack.marginThreshold) {
       console.log(
-        `Checked ${toTrack.paymentMethod} [${firstEntryName}] and it is at ${result[firstEntryName]}`
+        `Checked ${toTrack.paymentMethod} [${allOffers[0].denomination}] and it is at ${allOffers[0].margin}`
       );
-      if (result[firstEntryName] > toTrack.marginThreshold) {
+      if (allOffers[0].margin > toTrack.marginThreshold) {
         console.log(`Notifying for ${toTrack.paymentMethod}`);
 
         notifier.send({
-          message: `${toTrack.paymentMethod} is at ${result[firstEntryName]}, which is above ${toTrack.marginThreshold}`,
-          title: `${toTrack.paymentMethod} is at ${result[firstEntryName]}`,
+          message: `${toTrack.paymentMethod} is at ${allOffers[0].margin}, which is above ${toTrack.marginThreshold}`,
+          title: `${toTrack.paymentMethod} is at ${allOffers[0].margin}`,
           sound: "pushover",
           device: format(config.pushover.devices),
           priority: 1
@@ -41,7 +48,7 @@ export async function check() {
       }
 
       // try to update current offers and notify if changes were made
-      const updatedOfferValue = await updateOffer(allOfferValues, toTrack);
+      const updatedOfferValue = await updateOffer(allOffers, toTrack);
       if (updatedOfferValue != -1) {
         console.log(
           `Notifying updated offer for ${toTrack.paymentMethod}, now at ${updatedOfferValue}`
@@ -59,16 +66,16 @@ export async function check() {
     }
 
     // multi
-    for (const element of Object.keys(result)) {
+    for(const offerList of allOffers) {
       console.log(
-        `Checked ${toTrack.paymentMethod} [${element}] and it is at ${result[element]}`
+        `Checked ${toTrack.paymentMethod} [${offerList[0].denomination}] and it is at ${offerList[0].margin}`
       );
 
-      if (result[element] > toTrack.marginThresholds[element]) {
-        console.log(`Notifying for ${toTrack.paymentMethod} [${element}]`);
+      if (offerList[0].margin > toTrack.marginThresholds[offerList[0].denomination]) {
+        console.log(`Notifying for ${toTrack.paymentMethod} [${offerList[0].denomination}]`);
         notifier.send({
-          message: `${toTrack.paymentMethod} [${element}] is at ${result[element]}, which is above ${toTrack.marginThresholds[element]}`,
-          title: `${toTrack.paymentMethod} [${element}] is at ${result[element]}`,
+          message: `${toTrack.paymentMethod} [${offerList[0].denomination}] is at ${offerList[0].margin}, which is above ${toTrack.marginThresholds[offerList[0].denomination]}`,
+          title: `${toTrack.paymentMethod} [${offerList[0].denomination}] is at ${offerList[0].margin}`,
           sound: "pushover",
           device: format(config.pushover.devices),
           priority: 1
@@ -77,18 +84,17 @@ export async function check() {
 
       // try to update current offers and notify if changes were made
       const updatedOfferValue = await updateOffer(
-        allOfferValues[element],
-        toTrack,
-        element
+        offerList,
+        toTrack
       );
       if (updatedOfferValue != -1) {
         console.log(
-          `Notifying updated offer for ${toTrack.paymentMethod} [${element}], now at ${updatedOfferValue}`
+          `Notifying updated offer for ${toTrack.paymentMethod} [${offerList[0].denomination}], now at ${updatedOfferValue}`
         );
 
         notifier.send({
-          message: `${toTrack.paymentMethod} [${element}] offer was updated, now at ${updatedOfferValue}`,
-          title: `${toTrack.paymentMethod} [${element}] updated to ${updatedOfferValue}`,
+          message: `${toTrack.paymentMethod} [${offerList[0].denomination}] offer was updated, now at ${updatedOfferValue}`,
+          title: `${toTrack.paymentMethod} [${offerList[0].denomination}] updated to ${updatedOfferValue}`,
           sound: "pushover",
           device: format(config.pushover.devices),
           priority: 1
@@ -98,11 +104,10 @@ export async function check() {
   }
 }
 
-export async function getMargins(
-  toTrack: any,
-  allOfferValues: any
+export async function getOffers(
+  toTrack: any
 ): Promise<any> {
-  const margins: any = {};
+  const offers: any = [];
 
   if (!toTrack.marginThreshold && !toTrack.marginThresholds) {
     console.error("Tracking entry set up improperly.");
@@ -127,11 +132,18 @@ export async function getMargins(
       return;
     }
 
-    data.offers.forEach((element) => {
-      allOfferValues.push(element.margin);
+    data.offers.forEach(element => {
+      const offer: IOffer = {
+        "offer_id": element.offer_id, 
+        "margin": element.margin, 
+        "payment_method_slug": toTrack.paymentMethod,
+        "denomination": "all",
+        "offer_owner_username": element.offer_owner_username
+      };
+      offers.push(offer);
     });
 
-    return { all: data.offers[0].margin };
+    return offers;
   }
 
   // multi
@@ -154,13 +166,18 @@ export async function getMargins(
       continue;
     }
 
-    allOfferValues[min] = [];
-    data.offers.forEach((element) => {
-      allOfferValues[min].push(element.margin);
+    offers.push([]);
+    data.offers.forEach(element => {
+      const offer: IOffer = {
+        "offer_id": element.offer_id, 
+        "margin": element.margin, 
+        "payment_method_slug": toTrack.paymentMethod,
+        "denomination": min,
+        "offer_owner_username": element.offer_owner_username
+      };
+      offers[offers.length -1].push(offer);
     });
-
-    margins[min] = data.offers[0].margin;
   }
 
-  return margins;
+  return offers;
 }

@@ -1,4 +1,4 @@
-import Push from "pushover-notifications";
+import * as Push from "pushover-notifications";
 import { config } from "./config";
 
 export interface IPushoverObject {

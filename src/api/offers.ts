@@ -19,7 +19,7 @@ export async function all(
 
 export async function self(offer_type: string = "buy") {
   const [body, seal] = createBodySignature(
-    `active=false&offer_type=${offer_type}`
+    `active=true&offer_type=${offer_type}`
   );
 
   const result = await request("offer/list", `${body}&apiseal=${seal}`);

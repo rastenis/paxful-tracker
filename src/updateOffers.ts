@@ -81,5 +81,5 @@ export async function updateOffer(
     }
   }
 
-  return -1;
+  return;
 }

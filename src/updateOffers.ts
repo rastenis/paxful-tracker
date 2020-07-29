@@ -3,6 +3,8 @@ import { IOffer } from "./track";
 
 let username: string = null;
 
+const MARGIN_BUMP_AMOUNT = 0.02;
+
 // process offer margin list received from Paxful
 export async function updateOffer(
   offers: IOffer[],
@@ -64,7 +66,7 @@ export async function updateOffer(
       }
 
       if (sortedOffers[i].margin >= marginMin) {
-        newMargin = Math.max(marginMin, offers[i].margin - 0.01);
+        newMargin = Math.max(marginMin, offers[i].margin - MARGIN_BUMP_AMOUNT);
         break;
       }
     }

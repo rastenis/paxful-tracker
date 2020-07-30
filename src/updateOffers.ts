@@ -1,5 +1,6 @@
 import * as api from "./api";
 import { IOffer } from "./track";
+import { addNewRequest } from "./updateRequests";
 
 let username: string = null;
 
@@ -10,6 +11,7 @@ export async function updateOffer(
   offers: IOffer[],
   offerDescription: any
 ): Promise<number> {
+
   // no margin range == offer control disabled
   if (!offerDescription.adjustedMarginsMin?.[offers[0].denomination] &&
       !offerDescription.adjustedMarginMin) {
@@ -68,24 +70,13 @@ export async function updateOffer(
       }
     }
 
-    try {
-      // apply new margin to matched offer
-      const updateResult = await api.offers.update(element.offer_id, newMargin);
-      const success: boolean = updateResult.data?.success;
-
-      if (!success) {
-        console.error("Offer update unsuccessful: API error");
-        if(updateResult.error.message) 
-          console.error(updateResult.error.message);
-        return;
-      } else {
-        return newMargin;
-      }
-    } catch(exception) {
-      console.error("Offer update unsuccessful");
-      console.error(exception);
-      return;
-    }
+    addNewRequest({
+      offer_id: element.offer_id,
+      margin: newMargin,
+      payment_method_slug: element.payment_method_slug,
+      denomination: element.fiat_amount_range_min + " - " + element.fiat_amount_range_max,
+      offer_owner_username: username,
+    });
   }
 
   return;

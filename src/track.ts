@@ -2,6 +2,7 @@ import * as api from "./api";
 import { config } from "./config";
 import { notifier, format } from "./notifications";
 import { updateOffer } from "./updateOffers";
+import { processRequests } from "./updateRequests";
 
 export interface IOffer {
   offer_id: string;
@@ -46,22 +47,10 @@ export async function check() {
         });
       }
 
-      // try to update current offers and notify if changes were made
-      const updatedOfferValue = await updateOffer(allOffers, toTrack);
-      if (updatedOfferValue) {
-        console.log(
-          `Notifying updated offer for ${toTrack.paymentMethod}, now at ${updatedOfferValue}`
-        );
+      // if needed, queue current offer margin for an update
+      await updateOffer(allOffers, toTrack);
 
-        notifier.send({
-          message: `${toTrack.paymentMethod} offer was updated, now at ${updatedOfferValue}`,
-          title: `${toTrack.paymentMethod} updated to ${updatedOfferValue}`,
-          sound: "pushover",
-          device: format(config.pushover.devices),
-          priority: 1
-        });
-      }
-      return;
+      continue; // go through the rest of tracking configurations
     }
 
     // multi
@@ -90,23 +79,12 @@ export async function check() {
         });
       }
 
-      // try to update current offers and notify if changes were made
-      const updatedOfferValue = await updateOffer(offerList, toTrack);
-      if (updatedOfferValue) {
-        console.log(
-          `Notifying updated offer for ${toTrack.paymentMethod} [${offerList[0].denomination}], now at ${updatedOfferValue}`
-        );
-
-        notifier.send({
-          message: `${toTrack.paymentMethod} [${offerList[0].denomination}] offer was updated, now at ${updatedOfferValue}`,
-          title: `${toTrack.paymentMethod} [${offerList[0].denomination}] updated to ${updatedOfferValue}`,
-          sound: "pushover",
-          device: format(config.pushover.devices),
-          priority: 1
-        });
-      }
+      // if needed, queue current offer margin for an update
+      await updateOffer(offerList, toTrack);
     }
   }
+
+  processRequests();
 }
 
 export async function getOffers(toTrack: any): Promise<any> {

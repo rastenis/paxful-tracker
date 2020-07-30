@@ -11,7 +11,8 @@ export async function updateOffer(
   offerDescription: any
 ): Promise<number> {
   // no margin range == offer control disabled
-  if (!offerDescription.adjustedMarginsMin?.[offers[0].denomination]) {
+  if (!offerDescription.adjustedMarginsMin?.[offers[0].denomination] &&
+      !offerDescription.adjustedMarginMin) {
     return;
   }
 
@@ -25,10 +26,6 @@ export async function updateOffer(
     offers[0].denomination == "all"
       ? offerDescription.adjustedMarginMin
       : offerDescription.adjustedMarginsMin[offers[0].denomination];
-  marginMax =
-    offers[0].denomination == "all"
-      ? offerDescription.adjustedMarginMax
-      : offerDescription.adjustedMarginsMax[offers[0].denomination];
 
   const sortedOffers = offers.sort(
     (offer1, offer2) => offer1.margin - offer2.margin
@@ -71,15 +68,23 @@ export async function updateOffer(
       }
     }
 
-    // apply new margin to matched offer
-    const updateResult = await api.offers.update(element.offer_id, newMargin);
-    const success: boolean = updateResult.data.success;
+    try {
+      // apply new margin to matched offer
+      const updateResult = await api.offers.update(element.offer_id, newMargin);
+      const success: boolean = updateResult.data?.success;
 
-    if (!success) {
-      console.error("Offer update unsuccessful: API error");
-      return -1;
-    } else {
-      return newMargin;
+      if (!success) {
+        console.error("Offer update unsuccessful: API error");
+        if(updateResult.error.message) 
+          console.error(updateResult.error.message);
+        return;
+      } else {
+        return newMargin;
+      }
+    } catch(exception) {
+      console.error("Offer update unsuccessful");
+      console.error(exception);
+      return;
     }
   }
 

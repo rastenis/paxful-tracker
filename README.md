@@ -42,11 +42,6 @@ A config.json file has to be in the root directory of the tracker. **Warning**, 
         "50": 64,
         "100": 59,
         "200": 54
-      },
-      "adjustedMarginsMax": { // largest allowed margin for auto-adjusting
-        "50": 66,
-        "100": 61,
-        "200": 56
       }
     },
     // example of a single threshold payment method tracking configuration
@@ -54,8 +49,7 @@ A config.json file has to be in the root directory of the tracker. **Warning**, 
       "paymentMethod": "PAYMENT_METHOD",
       "currency": "CURRENCY_CODE",
       "marginThreshold": 99,
-      "adjustedMarginMin": 64,
-      "adjustedMarginMax": 66
+      "adjustedMarginMin": 64
     }
   ],
   "interval": 3600000, // interval for checking in milliseconds

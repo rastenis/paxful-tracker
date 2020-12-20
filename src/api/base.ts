@@ -5,8 +5,13 @@ export async function request(path: string, data?: string): Promise<any> {
     method: "POST",
     url: "https://paxful.com/api/" + path,
     data: data,
-    headers: { "Content-Type": "text/plain", Accept: "application/json" },
+    headers: { "Content-Type": "text/plain", Accept: "application/json" }
   });
+
+  if (result.data.status === "error") {
+    console.error(result.data.error?.message ?? result.data);
+    throw new Error(result.data);
+  }
 
   return result.data;
 }

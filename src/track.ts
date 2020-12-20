@@ -1,6 +1,16 @@
 import * as api from "./api";
 import { config } from "./config";
 import { notifier, format } from "./notifications";
+import { updateOffer } from "./updateOffers";
+import { processRequests } from "./updateRequests";
+
+export interface IOffer {
+  offer_id: string;
+  margin: number;
+  payment_method_slug: string;
+  denomination: string;
+  offer_owner_username: string;
+}
 
 export function setup() {
   setInterval(() => {
@@ -11,80 +21,122 @@ export function setup() {
 export async function check() {
   console.log("Checking...");
 
-  if (!config?.tracked) {
+  if (!config.tracked) {
     console.log("Nothing set up to track.");
     return;
   }
 
   for (const toTrack of config.tracked) {
-    const result = await getMargins(toTrack);
+    // getMargins returns IOffer array instead of number array for easier offer id filtering
+    const allOffers = await getOffers(toTrack);
 
-    const firstEntryName = Object.keys(result)[0];
-
-    if (firstEntryName === "all") {
-      if (result[firstEntryName] > toTrack.marginThreshold) {
+    // single
+    if (toTrack.marginThreshold) {
+      console.log(
+        `Checked ${toTrack.paymentMethod} [${allOffers[0].denomination}] and it is at ${allOffers[0].margin}`
+      );
+      if (allOffers[0].margin > toTrack.marginThreshold) {
         console.log(`Notifying for ${toTrack.paymentMethod}`);
 
         notifier.send({
-          message: `${toTrack.paymentMethod} is at ${result[firstEntryName]}, which is above ${toTrack.marginThreshold}`,
-          title: `${toTrack.paymentMethod} is at ${result[firstEntryName]}`,
+          message: `${toTrack.paymentMethod} is at ${allOffers[0].margin}, which is above ${toTrack.marginThreshold}`,
+          title: `${toTrack.paymentMethod} is at ${allOffers[0].margin}`,
           sound: "pushover",
           device: format(config.pushover.devices),
-          priority: 1,
+          priority: 1
         });
       }
-      return;
+
+      // if needed, queue current offer margin for an update
+      await updateOffer(allOffers, toTrack);
+
+      continue; // go through the rest of tracking configurations
     }
 
-    for (const element of Object.keys(result)) {
+    // multi
+    for (const offerList of allOffers) {
       console.log(
-        `Checked ${toTrack.paymentMethod} [${element}] and it is at ${result[element]}`
+        `Checked ${toTrack.paymentMethod} [${offerList[0].denomination}] and it is at ${offerList[0].margin}`
       );
 
-      if (result[element] > toTrack.marginThresholds[element]) {
-        console.log(`Notifying for ${toTrack.paymentMethod} [${element}]`);
+      if (
+        offerList[0].margin >
+        toTrack.marginThresholds[offerList[0].denomination]
+      ) {
+        console.log(
+          `Notifying for ${toTrack.paymentMethod} [${offerList[0].denomination}]`
+        );
         notifier.send({
-          message: `${toTrack.paymentMethod} [${element}] is at ${result[element]}, which is above ${toTrack.marginThresholds[element]}`,
-          title: `${toTrack.paymentMethod} [${element}] is at ${result[element]}`,
+          message: `${toTrack.paymentMethod} [${
+            offerList[0].denomination
+          }] is at ${offerList[0].margin}, which is above ${
+            toTrack.marginThresholds[offerList[0].denomination]
+          }`,
+          title: `${toTrack.paymentMethod} [${offerList[0].denomination}] is at ${offerList[0].margin}`,
           sound: "pushover",
           device: format(config.pushover.devices),
-          priority: 1,
+          priority: 1
         });
       }
+
+      // if needed, queue current offer margin for an update
+      await updateOffer(offerList, toTrack);
     }
   }
+
+  processRequests();
 }
 
-export async function getMargins(toTrack: any): Promise<any> {
-  let margins: any;
-  margins = {};
+export async function getOffers(toTrack: any): Promise<any> {
+  const offers: any = [];
 
   if (!toTrack.marginThreshold && !toTrack.marginThresholds) {
-    console.log("Tracking entry set up improperly.");
+    console.error("Tracking entry set up improperly.");
     process.exit(1);
   }
 
   // single
   if (toTrack.marginThreshold) {
-    const { data } = await api.rates.all(
+    const { data } = await api.offers.all(
       toTrack.paymentMethod,
       "buy",
       toTrack.currency
     );
 
-    return { all: data.offers[0].margin };
+    if (!data) {
+      console.error(
+        "Failed to get data for ",
+        toTrack.paymentMethod,
+        "buy",
+        toTrack.currency
+      );
+      return;
+    }
+
+    data.offers.forEach((element) => {
+      const offer: IOffer = {
+        offer_id: element.offer_id,
+        margin: element.margin,
+        payment_method_slug: toTrack.paymentMethod,
+        denomination: "all",
+        offer_owner_username: element.offer_owner_username
+      };
+      offers.push(offer);
+    });
+
+    return offers;
   }
 
   // multi
   for (const min in toTrack.marginThresholds) {
-    const { data } = await api.rates.all(
+    const { data } = await api.offers.all(
       toTrack.paymentMethod,
       "buy",
       toTrack.currency,
       parseFloat(min) // Denomination
     );
 
-    if (!data) {
+    if (!data || !data.offers[0]) {
       console.error(
         "Failed to get data for ",
         toTrack.paymentMethod,
@@ -95,8 +147,18 @@ export async function getMargins(toTrack: any): Promise<any> {
       continue;
     }
 
-    margins[min] = data.offers[0].margin;
+    offers.push([]);
+    data.offers.forEach((element) => {
+      const offer: IOffer = {
+        offer_id: element.offer_id,
+        margin: element.margin,
+        payment_method_slug: toTrack.paymentMethod,
+        denomination: min,
+        offer_owner_username: element.offer_owner_username
+      };
+      offers[offers.length - 1].push(offer);
+    });
   }
 
-  return margins;
+  return offers;
 }

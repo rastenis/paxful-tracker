@@ -18,6 +18,8 @@ export function setup() {
   }, config.interval);
 }
 
+const cache = {};
+
 export async function check() {
   console.log("Checking...");
 
@@ -58,6 +60,24 @@ export async function check() {
       console.log(
         `Checked ${toTrack.paymentMethod} [${offerList[0].denomination}] and it is at ${offerList[0].margin}`
       );
+
+      if (!cache[toTrack.paymentMethod]) {
+        cache[toTrack.paymentMethod] = {};
+      }
+
+      if (
+        cache[toTrack.paymentMethod][offerList[0].denomination] ===
+        offerList[0].margin
+      ) {
+        console.log(
+          `${toTrack.paymentMethod} [${offerList[0].denomination}] has not changed. Skipping notification/margin checks.`
+        );
+        continue;
+      }
+
+      // Caching new value
+      cache[toTrack.paymentMethod][offerList[0].denomination] =
+        offerList[0].margin;
 
       if (
         offerList[0].margin >

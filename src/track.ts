@@ -35,7 +35,7 @@ export async function check() {
     // single
     if (toTrack.marginThreshold) {
       console.log(
-        `Checked ${toTrack.paymentMethod} [${allOffers[0].denomination}] and it is at ${allOffers[0].margin}`
+        `Checked ${toTrack.paymentMethod} [${allOffers[0].denomination}] ${toTrack.currency} and it is at ${allOffers[0].margin}`
       );
 
       if (!cache[toTrack.paymentMethod]) {
@@ -47,7 +47,7 @@ export async function check() {
         allOffers[0].margin
       ) {
         console.log(
-          `${toTrack.paymentMethod} [${allOffers[0].denomination}] has not changed. Skipping notification/margin checks.`
+          `${toTrack.paymentMethod} [${allOffers[0].denomination}] ${toTrack.currency} has not changed. Skipping notification/margin checks.`
         );
         continue;
       }
@@ -57,11 +57,13 @@ export async function check() {
         allOffers[0].margin;
 
       if (allOffers[0].margin > toTrack.marginThreshold) {
-        console.log(`Notifying for ${toTrack.paymentMethod}`);
+        console.log(
+          `Notifying for ${toTrack.paymentMethod} ${toTrack.currency}`
+        );
 
         notifier.send({
-          message: `${toTrack.paymentMethod} is at ${allOffers[0].margin}, which is above ${toTrack.marginThreshold}`,
-          title: `${toTrack.paymentMethod} is at ${allOffers[0].margin}`,
+          message: `${toTrack.paymentMethod} ${toTrack.currency} is at ${allOffers[0].margin}, which is above ${toTrack.marginThreshold}`,
+          title: `${toTrack.paymentMethod} ${toTrack.currency} is at ${allOffers[0].margin}`,
           sound: "pushover",
           device: format(config.pushover.devices),
           priority: 1

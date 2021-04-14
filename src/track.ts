@@ -43,8 +43,7 @@ export async function check() {
       }
 
       if (
-        cache[toTrack.paymentMethod][allOffers[0].denomination] ===
-        allOffers[0].margin
+        cache[toTrack.paymentMethod][toTrack.currency] === allOffers[0].margin
       ) {
         console.log(
           `${toTrack.paymentMethod} [${allOffers[0].denomination}] ${toTrack.currency} has not changed. Skipping notification/margin checks.`
@@ -53,8 +52,7 @@ export async function check() {
       }
 
       // Caching new value
-      cache[toTrack.paymentMethod][allOffers[0].denomination] =
-        allOffers[0].margin;
+      cache[toTrack.paymentMethod][toTrack.currency] = allOffers[0].margin;
 
       if (allOffers[0].margin > toTrack.marginThreshold) {
         console.log(

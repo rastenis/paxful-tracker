@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@babel/core": "^7.12.10",
-    "axios": "^0.21.1",
+    "axios": "^0.21.2",
     "pushover-notifications": "^1.2.2"
   },
   "devDependencies": {
